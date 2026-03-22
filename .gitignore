@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# Generated pipeline outputs (produced by ingest_project.py)
+projects/*/processed/
+projects/*/output/
+
+# OS
+.DS_Store
+Thumbs.db

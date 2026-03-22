@@ -1,0 +1,21 @@
+So basically what I'm trying to do here is build a pipeline that takes all my messy notes
+and turns them into something useful.
+
+Like, you know when you have a bunch of voice memos and random text files and PDFs from
+courses you've done? And they're all just sitting there, unconnected?
+
+That's the problem. The distillery is supposed to solve that.
+
+The idea is: you dump everything into a raw folder, run the script, and it extracts the text,
+cleans it up, chunks it into bite-sized pieces, and then gives you a summary.
+
+Eventually I want to plug this into an LLM so it can actually answer questions about the stuff
+I've been learning. But for now, the MVP is just about getting the data into a clean, structured
+format that's ready for that next step.
+
+Key things I keep coming back to:
+- modularity: each step should be its own function
+- local-first: no cloud, no API keys required for the core pipeline
+- simplicity: it should be easy to run, easy to understand, easy to extend
+
+I think this is the foundation for everything else I want to build.
