@@ -1,0 +1,11 @@
+{
+  "primary_use": "Personal knowledge base for AI-assisted research and writing",
+  "secondary_uses": [
+    "Building a retrieval-augmented generation (RAG) corpus",
+    "Generating structured outlines from raw notes",
+    "Identifying key themes across sources"
+  ],
+  "audience": "The project creator and their AI assistant",
+  "output_format_preference": "JSON + Markdown",
+  "processing_priority": "accuracy over speed"
+}
