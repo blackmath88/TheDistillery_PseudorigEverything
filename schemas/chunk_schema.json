@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thedistillery.local/schemas/chunk_schema.json",
+  "title": "Chunk",
+  "type": "object",
+  "required": [
+    "chunk_id",
+    "project_id",
+    "source_id",
+    "section_title",
+    "source_type",
+    "text",
+    "tags",
+    "keywords"
+  ],
+  "properties": {
+    "chunk_id": { "type": "string" },
+    "project_id": { "type": "string" },
+    "source_id": { "type": "string" },
+    "section_title": { "type": "string" },
+    "source_type": { "type": "string" },
+    "text": { "type": "string" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

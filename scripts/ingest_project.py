@@ -18,6 +18,8 @@ import json
 import os
 import re
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -180,6 +182,12 @@ def build_project_json(project_dir: Path, cleaned: dict) -> dict:
         "project_id": cleaned["project_id"],
         "project_context": project_context,
         "use_intent": use_intent,
+        "core_concepts": [],
+        "themes": [],
+        "user_notes": [],
+        "application_ideas": [],
+        "open_questions": [],
+        "derived_summary": [],
         "source_items": source_items,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -225,8 +233,11 @@ def chunk_text(cleaned: dict, chunk_words: int = 400) -> list:
                 "chunk_id": f"chunk_{chunk_index:04d}",
                 "project_id": cleaned["project_id"],
                 "source_id": source["source_id"],
+                "section_title": "",
+                "source_type": source["source_type"],
                 "text": chunk_text_part,
                 "tags": [],
+                "keywords": [],
             })
             chunk_index += 1
 
@@ -234,22 +245,27 @@ def chunk_text(cleaned: dict, chunk_words: int = 400) -> list:
 
 
 def _split_into_chunks(text: str, chunk_words: int) -> list:
-    """Split *text* into chunks of approximately *chunk_words* words.
-
-    Uses simple whitespace tokenisation suitable for the MVP. Intra-word
-    formatting (e.g. multiple spaces) is already normalised by the cleaning
-    step before chunking, so this approach is appropriate for cleaned text.
-    """
-    words = text.split()
-    if not words:
+    """Split *text* into chunks while respecting paragraph boundaries first."""
+    if not text.strip():
         return []
 
     chunks = []
-    start = 0
-    while start < len(words):
-        end = start + chunk_words
-        chunks.append(" ".join(words[start:end]))
-        start = end
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+
+    for paragraph in paragraphs:
+        words = paragraph.split()
+        if not words:
+            continue
+
+        if len(words) <= chunk_words:
+            chunks.append(" ".join(words))
+            continue
+
+        start = 0
+        while start < len(words):
+            end = start + chunk_words
+            chunks.append(" ".join(words[start:end]))
+            start = end
 
     return chunks
 
@@ -258,7 +274,7 @@ def _split_into_chunks(text: str, chunk_words: int) -> list:
 # Step 5 — Summary
 # ---------------------------------------------------------------------------
 
-def build_summary(extracted: dict, project_dir: Path) -> str:
+def build_summary(extracted: dict, llm_summary: str = "") -> str:
     """
     Generate a human-readable Markdown summary of the project.
     """
@@ -288,24 +304,105 @@ def build_summary(extracted: dict, project_dir: Path) -> str:
     for stype, count in sorted(type_counts.items()):
         lines.append(f"- `{stype}`: {count} source(s)")
 
-    lines += [
-        "",
-        "## Source Previews",
-        "",
-    ]
-
-    for s in sources:
-        preview = s["raw_text"][:500].replace("\n", " ").strip()
-        if len(s["raw_text"]) > 500:
-            preview += "…"
+    if llm_summary.strip():
         lines += [
-            f"### {s['filename']} (`{s['source_type']}`)",
             "",
-            preview,
+            "## Knowledge Synthesis",
+            "",
+            llm_summary.strip(),
+            "",
+        ]
+    else:
+        lines += [
+            "",
+            "## Source Previews",
             "",
         ]
 
+        for s in sources:
+            preview = s["raw_text"][:500].replace("\n", " ").strip()
+            if len(s["raw_text"]) > 500:
+                preview += "…"
+            lines += [
+                f"### {s['filename']} (`{s['source_type']}`)",
+                "",
+                preview,
+                "",
+            ]
+
     return "\n".join(lines)
+
+
+def _generate_llm_summary(cleaned: dict, project_json: dict, model: str) -> str:
+    """Generate a synthesis summary via an OpenAI-compatible Chat Completions API."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("  WARNING: --llm enabled but OPENAI_API_KEY is not set; using fallback summary.")
+        return ""
+
+    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    endpoint = base_url.rstrip("/") + "/chat/completions"
+
+    source_blocks = []
+    for source in cleaned["sources"]:
+        source_blocks.append(
+            f"[SOURCE: {source['filename']} | {source['source_type']}]\n{source['clean_text']}"
+        )
+
+    corpus = "\n\n".join(source_blocks)
+    max_chars = 120000
+    if len(corpus) > max_chars:
+        corpus = corpus[:max_chars]
+
+    system_prompt = (
+        "You are a concise research distillation assistant. "
+        "Return clear markdown with section headers and short bullets."
+    )
+    user_prompt = (
+        "Synthesize this project corpus into practical knowledge for future retrieval.\n\n"
+        f"Project ID: {cleaned['project_id']}\n"
+        f"Project context: {project_json.get('project_context', '')}\n"
+        f"Use intent: {json.dumps(project_json.get('use_intent', {}), ensure_ascii=False)}\n\n"
+        "Required sections:\n"
+        "1) Core concepts\n"
+        "2) Key themes\n"
+        "3) Practical application ideas\n"
+        "4) Open questions\n"
+        "5) One-paragraph executive summary\n\n"
+        "Use only the provided corpus. If uncertain, say so explicitly.\n\n"
+        f"Corpus:\n{corpus}"
+    )
+
+    payload = {
+        "model": model,
+        "temperature": 0.2,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+
+    request = urllib.request.Request(
+        endpoint,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            body = json.loads(response.read().decode("utf-8"))
+            return body["choices"][0]["message"]["content"].strip()
+    except urllib.error.HTTPError as exc:
+        details = exc.read().decode("utf-8", errors="replace")
+        print(f"  WARNING: LLM summary request failed ({exc.code}): {details}")
+    except Exception as exc:
+        print(f"  WARNING: LLM summary request failed: {exc}")
+
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +430,7 @@ def _write_text(path: Path, content: str) -> None:
 # Main pipeline
 # ---------------------------------------------------------------------------
 
-def run_pipeline(project_dir: Path) -> None:
+def run_pipeline(project_dir: Path, chunk_words: int = 400, use_llm: bool = False, llm_model: str = "gpt-4o-mini") -> None:
     """Execute all five pipeline stages for the given project directory."""
 
     # Validate project directory
@@ -370,13 +467,17 @@ def run_pipeline(project_dir: Path) -> None:
 
     # ------------------------------------------------------------------
     print("\n[4/5] Chunking cleaned text …")
-    chunks = chunk_text(cleaned)
+    chunks = chunk_text(cleaned, chunk_words=chunk_words)
     _write_jsonl(output_dir / "chunks.jsonl", chunks)
-    print(f"  Total chunks: {len(chunks)}")
+    print(f"  Total chunks: {len(chunks)} (chunk_words={chunk_words})")
 
     # ------------------------------------------------------------------
     print("\n[5/5] Generating summary …")
-    summary = build_summary(extracted, project_dir)
+    llm_summary = ""
+    if use_llm:
+        print(f"  LLM synthesis enabled (model={llm_model})")
+        llm_summary = _generate_llm_summary(cleaned, project_json, llm_model)
+    summary = build_summary(extracted, llm_summary=llm_summary)
     _write_text(output_dir / "summary.md", summary)
 
     # ------------------------------------------------------------------
@@ -401,10 +502,34 @@ def main() -> None:
         required=True,
         help="Path to the project folder (e.g. projects/example_project)",
     )
+    parser.add_argument(
+        "--chunk-words",
+        type=int,
+        default=400,
+        help="Approximate max words per chunk (default: 400)",
+    )
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="Enable OpenAI-compatible LLM synthesis for summary.md",
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="gpt-4o-mini",
+        help="LLM model name used with --llm (default: gpt-4o-mini)",
+    )
     args = parser.parse_args()
 
     project_dir = Path(args.project).resolve()
-    run_pipeline(project_dir)
+    if args.chunk_words < 50:
+        print("ERROR: --chunk-words must be >= 50")
+        sys.exit(1)
+    run_pipeline(
+        project_dir,
+        chunk_words=args.chunk_words,
+        use_llm=args.llm,
+        llm_model=args.llm_model,
+    )
 
 
 if __name__ == "__main__":

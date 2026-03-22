@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thedistillery.local/schemas/project_schema.json",
+  "title": "Project",
+  "type": "object",
+  "required": [
+    "project_id",
+    "project_context",
+    "use_intent",
+    "core_concepts",
+    "themes",
+    "user_notes",
+    "application_ideas",
+    "open_questions",
+    "derived_summary",
+    "source_items",
+    "created_at"
+  ],
+  "properties": {
+    "project_id": { "type": "string" },
+    "project_context": { "type": "string" },
+    "use_intent": { "type": "object" },
+    "core_concepts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "themes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "user_notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "application_ideas": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "derived_summary": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "filename", "source_type", "char_count"],
+        "properties": {
+          "source_id": { "type": "string" },
+          "filename": { "type": "string" },
+          "source_type": { "type": "string" },
+          "char_count": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}
