@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}{{ project_id }} • The Distillery{% endblock %}
+
+{% block content %}
+  <div class="pagehead">
+    <div>
+      <h1>{{ project_id }}</h1>
+      <div class="muted small"><code>{{ project_dir }}</code></div>
+    </div>
+
+    <div class="pagehead__actions">
+      <a class="btn" href="#context">Context</a>
+      <a class="btn" href="#sources">Source Files</a>
+      <a class="btn btn--primary" href="#run">Run</a>
+      <a class="btn" href="#outputs">Outputs</a>
+      <a class="btn" href="#pack">LLM Pack</a>
+    </div>
+  </div>
+
+  <section class="panel" id="setup">
+    <h2>Project Setup</h2>
+    <div class="grid2">
+      <div class="card">
+        <div class="card__title">Expected structure</div>
+        <ul class="kv">
+          <li><span class="kv__k">raw/</span><span class="kv__v"><code>{{ structure.raw }}</code></span></li>
+          <li><span class="kv__k">processed/</span><span class="kv__v"><code>{{ structure.processed }}</code></span></li>
+          <li><span class="kv__k">output/</span><span class="kv__v"><code>{{ structure.output }}</code></span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card__title">What this tool does</div>
+        <div class="muted">
+          Distills messy source material into structured artifacts, then packages an LLM-ready context pack.
+          Deterministic pipeline first; optional LLM enrichment second.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="context">
+    <h2>Context Editor</h2>
+    <form method="post" action="{{ url_for('save_context', project_id=project_id) }}" class="form">
+      <label class="label">project_context.md</label>
+      <textarea class="textarea" name="project_context" rows="10" placeholder="High-level context, constraints, definitions…">{{ project_context }}</textarea>
+
+      <label class="label">use_intent.json</label>
+      <textarea class="textarea code" name="use_intent_text" rows="10" placeholder='{"purpose":"", "audience":"", "desired_outputs":[] }'>{{ use_intent_text }}</textarea>
+
+      <button class="btn btn--primary" type="submit">Save context</button>
+      <div class="muted small">Saved into the project root (next to raw/).</div>
+    </form>
+  </section>
+
+  <section class="panel" id="sources">
+    <h2>Source Files</h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card__title">Upload into raw/</div>
+        <form method="post" action="{{ url_for('upload_files', project_id=project_id) }}" enctype="multipart/form-data" class="form">
+          <input class="input" type="file" name="files" multiple />
+          <button class="btn btn--primary" type="submit">Upload</button>
+          <div class="muted small">Supported by pipeline: <code>.txt</code>, <code>.md</code>, <code>.pdf</code></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card__title">Files currently in raw/</div>
+        {% if raw_files %}
+          <table class="table">
+            <thead>
+              <tr><th>Filename</th><th>Type</th><th class="right">Bytes</th></tr>
+            </thead>
+            <tbody>
+              {% for f in raw_files %}
+                <tr>
+                  <td><code>{{ f.name }}</code></td>
+                  <td><code>{{ f.source_type }}</code></td>
+                  <td class="right">{{ f.size }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="muted">(No source files yet.)</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="run">
+    <h2>Run Distillation</h2>
+    <form method="post" action="{{ url_for('run_project', project_id=project_id) }}" class="form form--inline">
+      <div>
+        <label class="label" for="chunk_words">chunk_words</label>
+        <input class="input" id="chunk_words" name="chunk_words" value="400" />
+      </div>
+
+      <div>
+        <label class="label" for="llm_model">LLM model (optional)</label>
+        <input class="input" id="llm_model" name="llm_model" value="gpt-4o-mini" />
+      </div>
+
+      <label class="check">
+        <input type="checkbox" name="use_llm" />
+        <span>Enable LLM synthesis (requires <code>OPENAI_API_KEY</code>)</span>
+      </label>
+
+      <button class="btn btn--primary" type="submit">Run pipeline</button>
+    </form>
+
+    <div class="muted small">
+      Writes: <code>processed/extracted_text.json</code>, <code>processed/cleaned_text.json</code>, <code>output/project.json</code>, <code>output/chunks.jsonl</code>, <code>output/summary.md</code>
+      + <code>output/llm_context_pack.md</code>, <code>output/prompt_starter.md</code>, <code>output/report.html</code>.
+    </div>
+  </section>
+
+  <section class="panel" id="outputs">
+    <h2>Outputs</h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card__title">summary.md</div>
+        {% if summary_md %}
+          <pre class="preview">{{ summary_md }}</pre>
+        {% else %}
+          <div class="muted">(Not generated yet.)</div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <div class="card__title">project.json</div>
+        {% if project_json_preview %}
+          <pre class="preview code">{{ project_json_preview }}</pre>
+        {% else %}
+          <div class="muted">(Not generated yet.)</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card__title">chunks.jsonl (preview)</div>
+      {% if chunks_preview %}
+        <pre class="preview code">{{ chunks_preview }}</pre>
+      {% else %}
+        <div class="muted">(Not generated yet.)</div>
+      {% endif %}
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card__title">Generated files</div>
+      {% if output_files %}
+        <ul class="list">
+          {% for p in output_files %}
+            <li class="list__item">
+              <code>{{ p }}</code>
+              <span class="spacer"></span>
+              <a class="btn btn--sm" href="{{ url_for('download_file', project_id=project_id, relpath=p) }}">Download</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="muted">(No output files yet.)</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel" id="pack">
+    <h2>LLM Context Pack</h2>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card__title">llm_context_pack.md</div>
+        {% if llm_context_pack_preview %}
+          <div class="row-actions">
+            <button class="btn btn--sm" type="button" onclick="copyText('llmPack')">Copy to clipboard</button>
+            <a class="btn btn--sm" href="{{ url_for('download_file', project_id=project_id, relpath='output/llm_context_pack.md') }}">Download</a>
+          </div>
+          <pre id="llmPack" class="preview">{{ llm_context_pack_preview }}</pre>
+        {% else %}
+          <div class="muted">(Not generated yet. Run the pipeline.)</div>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <div class="card__title">prompt_starter.md</div>
+        {% if prompt_starter_preview %}
+          <a class="btn btn--sm" href="{{ url_for('download_file', project_id=project_id, relpath='output/prompt_starter.md') }}">Download</a>
+          <pre class="preview">{{ prompt_starter_preview }}</pre>
+        {% else %}
+          <div class="muted">(Not generated yet. Run the pipeline.)</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card__title">Optional HTML report</div>
+      {% if report_exists %}
+        <a class="btn btn--primary" target="_blank" href="{{ url_for('open_report', project_id=project_id) }}">Open report.html</a>
+      {% else %}
+        <div class="muted">(report.html not generated yet.)</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <script>
+    function copyText(id) {
+      const el = document.getElementById(id);
+      const text = el ? el.innerText : '';
+      navigator.clipboard.writeText(text);
+    }
+  </script>
+{% endblock %}

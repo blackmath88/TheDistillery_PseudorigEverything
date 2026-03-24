@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Projects • The Distillery{% endblock %}
+
+{% block content %}
+  <div class="grid">
+    <section class="panel">
+      <h1>Projects</h1>
+      <p class="muted">Projects live under <code>{{ projects_dir }}</code>.</p>
+
+      {% if projects %}
+        <ul class="list">
+          {% for p in projects %}
+            <li class="list__item">
+              <a class="link" href="{{ url_for('project_view', project_id=p) }}">{{ p }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">(No projects yet.)</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>Create a new project</h2>
+      <form method="post" action="{{ url_for('create_project_route') }}" class="form">
+        <label class="label" for="project_id">Project name</label>
+        <input class="input" id="project_id" name="project_id" placeholder="my_project" />
+
+        <button class="btn btn--primary" type="submit">Create project</button>
+
+        <div class="muted small">
+          Creates: <code>raw/</code>, <code>processed/</code>, <code>output/</code> and seeds
+          <code>project_context.md</code>, <code>use_intent.json</code>.
+        </div>
+      </form>
+    </section>
+  </div>
+{% endblock %}

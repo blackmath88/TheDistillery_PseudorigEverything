@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}The Distillery{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar__inner">
+      <div class="brand">
+        <div class="brand__title">The Distillery</div>
+        <div class="brand__subtitle">Local context distillation + packaging</div>
+      </div>
+      <nav class="nav">
+        <a href="{{ url_for('index') }}">Projects</a>
+        {% if project_id %}
+          <span class="nav__sep">/</span>
+          <span class="nav__current">{{ project_id }}</span>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <div class="flash flash--{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer wrap">
+    <div class="muted">Local-first • No database • No cloud • Runs on 127.0.0.1</div>
+  </footer>
+</body>
+</html>
