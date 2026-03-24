@@ -1,0 +1,29 @@
+{
+  "project_id": "example_project",
+  "sources": [
+    {
+      "source_id": "platform_notes",
+      "filename": "platform_notes.md",
+      "source_type": "platform_text",
+      "raw_text": "# Platform Notes\n\nTools and decisions for extraction, chunking, and storage in a local-first pipeline."
+    },
+    {
+      "source_id": "transcript_intro",
+      "filename": "transcript_intro.txt",
+      "source_type": "transcript",
+      "raw_text": "The Distillery turns messy notes into clean structured outputs through extraction, cleaning, chunking, and summarization."
+    },
+    {
+      "source_id": "workbook_notes",
+      "filename": "workbook_notes.md",
+      "source_type": "workbook",
+      "raw_text": "Workbook reflections emphasize modularity, local-first design, and a minimal MVP with file-based outputs."
+    },
+    {
+      "source_id": "reading_01",
+      "filename": "reading_01.pdf",
+      "source_type": "pdf_reference",
+      "raw_text": ""
+    }
+  ]
+}

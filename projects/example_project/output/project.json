@@ -1,0 +1,41 @@
+{
+  "project_id": "example_project",
+  "project_context": "This project demonstrates a local-first distillation pipeline for mixed learning artifacts.",
+  "use_intent": {
+    "primary_use": "Personal knowledge base for AI-assisted research and writing",
+    "output_format_preference": "JSON + Markdown"
+  },
+  "core_concepts": [],
+  "themes": [],
+  "user_notes": [],
+  "application_ideas": [],
+  "open_questions": [],
+  "derived_summary": [],
+  "source_items": [
+    {
+      "source_id": "platform_notes",
+      "filename": "platform_notes.md",
+      "source_type": "platform_text",
+      "char_count": 94
+    },
+    {
+      "source_id": "transcript_intro",
+      "filename": "transcript_intro.txt",
+      "source_type": "transcript",
+      "char_count": 117
+    },
+    {
+      "source_id": "workbook_notes",
+      "filename": "workbook_notes.md",
+      "source_type": "workbook",
+      "char_count": 103
+    },
+    {
+      "source_id": "reading_01",
+      "filename": "reading_01.pdf",
+      "source_type": "pdf_reference",
+      "char_count": 0
+    }
+  ],
+  "created_at": "2026-03-24T12:00:00+00:00"
+}

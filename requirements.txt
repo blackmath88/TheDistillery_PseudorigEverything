@@ -1,5 +1,2 @@
-# The Distillery — Python dependencies
-# Install with:  pip install -r requirements.txt
-
 flask>=3.0.0
 pypdf>=4.0.0
